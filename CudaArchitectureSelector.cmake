@@ -137,6 +137,7 @@ function(cas_get_supported_architectures output)
     endif()
     set(CAS_SUPPORTED_ARCHITECTURES ${supported} CACHE INTERNAL
         "GPU architectures supported by the compiler")
+    mark_as_advanced(FORCE CAS_SUPPORTED_ARCHITECTURES)
     message(STATUS 
         "The CUDA compiler supports the following architectures: ${supported}")
     set(${output} ${CAS_SUPPORTED_ARCHITECTURES} PARENT_SCOPE)
@@ -173,6 +174,7 @@ function(cas_get_onboard_architectures output)
         list(REMOVE_DUPLICATES detected)
         set(CAS_ONBOARD_ARCHITECTURES ${detected} CACHE INTERNAL
             "List of detected GPU architectures")
+        mark_as_advanced(FORCE CAS_ONBOARD_ARCHITECTURES)
         message(STATUS 
             "Detected GPU devices of the following architectures: ${detected}")
     else()
