@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.8)
 project(CudaArchitectureSelectorExample LANGUAGES CUDA)
 
-include(../CudaArchitectureSelector.cmake)
+add_subdirectory(.. modules)
+include(CudaArchitectureSelector)
 
 
 # regular usage: just describe the architectures for which you want to compile

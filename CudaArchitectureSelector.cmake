@@ -68,7 +68,7 @@
 #
 # All available architectures:
 #   Specified by the string `All``. This option will add flags for CUBIN code
-#   generation for all supported GPU architectures.
+#   generation for all GPU architectures supported by the compiler.
 #
 # GPU generation name:
 #   Has to be one of the strings ``Tesla``, ``Fermi``, ``Kepler``, ``Maxwell``,
@@ -101,6 +101,8 @@
 # physical (CUBIN) and virtual (PTX) architectures matching one of the
 # identifiers in this list will be removed from the list specified by the
 # ``ARCHITECTURES`` list. A warning will be printed for each removed entry.
+# The list also supports aggregates ``All``, ``Auto`` and GPU generation names
+# wich have the same meaning as in the ``ARCHITECTURES'' specification list.
 
 
 if(NOT CMAKE_CUDA_COMPILER_LOADED)
@@ -228,6 +230,8 @@ function(cas_is_supported_architecture_spec arch output)
 endfunction()
 
 
+# Adds or removes entries from a flag list using the ARCHITECTURES or
+# UNUPPORTED lists.
 function(cas_update_flag_list flags_name mode)
     set(flags "${${flags_name}}")
     if(mode STREQUAL "ARCHITECTURES")
@@ -291,7 +295,7 @@ function(cas_get_compiler_flags output)
         endif()
         if(NOT DEFINED stage)
             message(FATAL_ERROR
-                "csa_get_compiler_flags given unknown argument ${arg}")
+                "cas_get_compiler_flags given unknown argument ${arg}")
         endif()
         if(arg STREQUAL "Auto")
             cas_get_onboard_architectures(detected)
