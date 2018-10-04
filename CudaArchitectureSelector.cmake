@@ -105,7 +105,7 @@
 # wich have the same meaning as in the ``ARCHITECTURES'' specification list.
 
 
-if(NOT CMAKE_CUDA_COMPILER_LOADED)
+if(NOT DEFINED CMAKE_CUDA_COMPILER)
     message(FATAL_ERROR "CUDA language support is not enabled")
 endif()
 
