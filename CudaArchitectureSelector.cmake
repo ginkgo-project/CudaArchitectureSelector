@@ -177,11 +177,11 @@ function(cas_get_onboard_architectures output)
         set(CAS_ONBOARD_ARCHITECTURES ${detected} CACHE INTERNAL
             "List of detected GPU architectures")
         mark_as_advanced(FORCE CAS_ONBOARD_ARCHITECTURES)
-        message(STATUS 
+        message(STATUS
             "Detected GPU devices of the following architectures: ${detected}")
     else()
-        message(WARNING 
-            "GPU detection failed -- something seems to be wrong"
+        message(WARNING
+            "GPU detection failed -- something seems to be wrong "
             "with the CUDA installation")
     endif()
     set(${output} ${CAS_ONBOARD_ARCHITECTURES} PARENT_SCOPE)
