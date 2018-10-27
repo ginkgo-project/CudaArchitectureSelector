@@ -157,7 +157,9 @@ function(cas_get_onboard_architectures output)
         "#include <iostream>\n"
         "int main() {"
         "  int n = 0;"
-        "  if (cudaGetDeviceCount(&n) != cudaSuccess) return 1;"
+        "  auto r = cudaGetDeviceCount(&n);"
+        "  if (r == cudaErrorNoDevice) return 0;"
+        "  if (r != cudaSuccess) return 1;"
         "  for (auto i = 0; i < n; ++i) {"
         "    if (i > 0) std::cout << ';';"
         "    cudaDeviceProp p;"
@@ -299,7 +301,7 @@ function(cas_get_compiler_flags output)
         endif()
         if(arg STREQUAL "Auto")
             cas_get_onboard_architectures(detected)
-            if(${detected} STREQUAL "")
+            if(detected STREQUAL "")
                 message(WARNING
                     "No GPUs detected on the system -- no additional flags "
                     "added to the list of architectures")
