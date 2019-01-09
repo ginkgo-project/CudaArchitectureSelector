@@ -157,22 +157,21 @@ function(cas_get_onboard_architectures output)
         "#include <iostream>\n"
         "int main() {"
         "  int n = 0;"
-        "  auto r = cudaGetDeviceCount(&n);"
+        "  cudaError_t r = cudaGetDeviceCount(&n);"
         "  if (r == cudaErrorNoDevice) return 0;"
         "  if (r != cudaSuccess) return 1;"
-        "  for (auto i = 0; i < n; ++i) {"
-        "    if (i > 0) std::cout << ';';"
+        "  char *sep = \"\";"
+        "  for (int i = 0; i < n; ++i) {"
         "    cudaDeviceProp p;"
-        "    if (cudaGetDeviceProperties(&p, i) == cudaSuccess)"
-        "      std::cout << p.major << p.minor;"
+        "    if (cudaGetDeviceProperties(&p, i) == cudaSuccess) {"
+        "      std::cout << sep << p.major << p.minor;"
+        "      sep = \";\";"
+        "    }"
         "  }"
         "}")
-    execute_process(
-        COMMAND "${CMAKE_CUDA_COMPILER}" --run "${detector_name}"
-        WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/CMakeFiles/"
-        RESULT_VARIABLE status
-        OUTPUT_VARIABLE detected
-        ERROR_QUIET)
+    try_run(status unused
+        "${PROJECT_BINARY_DIR}/CMakeFiles" "${detector_name}"
+        RUN_OUTPUT_VARIABLE detected)
     if(status EQUAL 0)
         list(SORT detected)
         list(REMOVE_DUPLICATES detected)
