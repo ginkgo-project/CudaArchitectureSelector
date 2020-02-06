@@ -328,3 +328,9 @@ function(cas_target_cuda_architectures target)
     target_compile_options(${target}
         PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:${flags}>")
 endfunction()
+
+# It only outputs the compiler flags.
+function(cas_target_cuda_architectures_plain target)
+    cas_get_compiler_flags(flags ${ARGN})
+    set(${target} "${flags}" PARENT_SCOPE)
+endfunction()
