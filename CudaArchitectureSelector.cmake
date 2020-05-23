@@ -1,7 +1,6 @@
 ################################ License #######################################
-# Copyright 2017-2018
-# 
-# Karlsruhe Institute of Technology Universitat Jaume I University of Tennessee
+# Copyright (c) 2017-2020, the Ginkgo authors
+# All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -93,6 +92,9 @@
 #   the jitter to compile for the specific device at runtime) for the specified
 #   architecture will be added to the compiler flags.
 #
+# clang-cuda makes no distinction between virtual and physical architecture,
+# and the physical architecture takes precedence over the virtual architecture.
+#
 # ``UNSUPPORTED`` architectures list
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
@@ -119,8 +121,25 @@ function(cas_get_supported_architectures output)
         set(${output} ${CAS_SUPPORTED_ARCHITECTURES} PARENT_SCOPE)
         return()
     endif()
+    set(CAS_NVCC_EXEC "${CMAKE_CUDA_COMPILER}")
+    # for clang-cuda determine underlying nvcc location
+    if(CMAKE_CUDA_COMPILER_ID STREQUAL "Clang")
+        execute_process(
+            COMMAND "${CMAKE_CUDA_COMPILER}" -v
+            RESULT_VARIABLE status
+            ERROR_VARIABLE clang_info_content
+            OUTPUT_QUIET)
+        if(NOT (status EQUAL 0))
+            message(FATAL_ERROR "Unable to execute clang-cuda")
+        endif()
+        if (clang_info_content MATCHES "Found CUDA installation: (.*), version ")
+            set(CAS_NVCC_EXEC "${CMAKE_MATCH_1}/bin/nvcc")
+        else()
+            message(FATAL_ERROR "Unable to determine CUDA installation path from clang-cuda")
+        endif()
+    endif()
     execute_process(
-        COMMAND "${CMAKE_CUDA_COMPILER}" --help
+        COMMAND "${CAS_NVCC_EXEC}" --help
         RESULT_VARIABLE status
         OUTPUT_VARIABLE help_content
         ERROR_QUIET)
@@ -246,21 +265,30 @@ function(cas_update_flag_list flags_name mode)
             string(REGEX MATCH "${cas_spec_regex}" unused "${spec}")
             set(code "${CMAKE_MATCH_1}")
             set(arch "${CMAKE_MATCH_3}")
-            if(arch STREQUAL "")
-                # virtual architecture not specified, use the one corresponding
-                # to the real architecture
-                set(arch ${code})
-            endif()
-            if(code STREQUAL "")
-                # real architecture not specified, ony generate PTX for the
-                # virtual architecture
-                set(new_flag "arch=compute_${arch},code=compute_${arch}")
+            if(CMAKE_CUDA_COMPILER_ID STREQUAL "Clang")
+                if(code STREQUAL "")
+                    set(new_flag "sm_${arch}")
+                else()
+                    set(new_flag "sm_${code}")
+                endif()
+                list(APPEND flags "--cuda-gpu-arch=${new_flag}")
             else()
-                # real architecture specified, generate CUBIN object for that
-                # architecture
-                set(new_flag "arch=compute_${arch},code=sm_${code}")
+                if(arch STREQUAL "")
+                    # virtual architecture not specified, use the one corresponding
+                    # to the real architecture
+                    set(arch ${code})
+                endif()
+                if(code STREQUAL "")
+                    # real architecture not specified, only generate PTX for the
+                    # virtual architecture
+                    set(new_flag "arch=compute_${arch},code=compute_${arch}")
+                else()
+                    # real architecture specified, generate CUBIN object for that
+                    # architecture
+                    set(new_flag "arch=compute_${arch},code=sm_${code}")
+                endif()
+                list(APPEND flags "--generate-code=${new_flag}")
             endif()
-            list(APPEND flags "--generate-code=${new_flag}")
         endforeach()
     elseif(mode STREQUAL "UNSUPPORTED")
         foreach(arch IN LISTS ARGN)
