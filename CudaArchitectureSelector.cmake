@@ -55,16 +55,16 @@
 #
 # ::
 # 
-#   cas_target_cuda_architectures_plain(
-#    <target>                   # target for which to store the architecures
+#   cas_variable_cuda_architectures(
+#    <variable>                 # variable for storing architectures compiler 
+#                               # flag
 #    [ARCHITECTURES <spec>...]  # list of architecture specifications
-#    [UNSUPPORTED <arch>...]    # list of architectures not supported by the
-#                               # target
+#    [UNSUPPORTED <arch>...]    # list of architectures not supported
 #   )
 #
 # The command has the same result as ``cas_target_cuda_architectures``. It does 
 # not add the compiler flags to the target, but stores the compiler flags in 
-# the target (string).
+# the variable (string).
 #
 # 
 # ``ARCHITECTURES`` specification list
@@ -372,7 +372,7 @@ function(cas_target_cuda_architectures target)
 endfunction()
 
 # It only outputs the compiler flags.
-function(cas_target_cuda_architectures_plain target)
+function(cas_variable_cuda_architectures variable)
     cas_get_compiler_flags(flags ${ARGN})
-    set(${target} "${flags}" PARENT_SCOPE)
+    set(${variable} "${flags}" PARENT_SCOPE)
 endfunction()
