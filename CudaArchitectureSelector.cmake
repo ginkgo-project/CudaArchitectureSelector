@@ -53,6 +53,19 @@
 # specification. Optionally, the list of flags can be filtered by specifying
 # which architectures are not supported by the target.
 #
+# ::
+# 
+#   cas_variable_cuda_architectures(
+#    <variable>                 # variable for storing architectures compiler 
+#                               # flag
+#    [ARCHITECTURES <spec>...]  # list of architecture specifications
+#    [UNSUPPORTED <arch>...]    # list of architectures not supported
+#   )
+#
+# The command has the same result as ``cas_target_cuda_architectures``. It does 
+# not add the compiler flags to the target, but stores the compiler flags in 
+# the variable (string).
+#
 # 
 # ``ARCHITECTURES`` specification list
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -71,9 +84,9 @@
 #
 # GPU generation name:
 #   Has to be one of the strings ``Tesla``, ``Fermi``, ``Kepler``, ``Maxwell``,
-#   ``Pascal``, ``Volta``. Specifying one of the strings will add flags for the
-#   generation of CUBIN code for all architectures belonging to that GPU
-#   generation (except the ones listed in the ``UNSUPPORTED`` list).
+#   ``Pascal``, ``Volta``, ``Ampere``. Specifying one of the strings will add 
+#   flags for the generation of CUBIN code for all architectures belonging to 
+#   that GPU generation (except the ones listed in the ``UNSUPPORTED`` list).
 #
 # Virtual and physical architecture specification:
 #   A string of the form ``XX(YY)``, where ``XX`` is the identifier of the
@@ -218,6 +231,7 @@ function(cas_get_architectures_by_name name output)
     set(maxwell_version 5)
     set( pascal_version 6)
     set(  volta_version 7)
+    set( ampere_version 8)
     string(TOLOWER ${name} lower_name)
     if(NOT DEFINED ${lower_name}_version)
         message(FATAL_ERROR "${name} is not a valid GPU generation name")
@@ -358,7 +372,7 @@ function(cas_target_cuda_architectures target)
 endfunction()
 
 # It only outputs the compiler flags.
-function(cas_target_cuda_architectures_plain target)
+function(cas_variable_cuda_architectures variable)
     cas_get_compiler_flags(flags ${ARGN})
-    set(${target} "${flags}" PARENT_SCOPE)
+    set(${variable} "${flags}" PARENT_SCOPE)
 endfunction()
