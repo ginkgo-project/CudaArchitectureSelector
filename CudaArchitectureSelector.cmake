@@ -77,10 +77,10 @@
 # Automatic detection:
 #   Specified by the string ``Auto``. Flags for CUBIN code generation will be
 #   added for all GPU architectures detected on the system. When nothing is
-#   detected, the behavior is the same as `All`.
+#   detected, the behavior is the same as ``All``.
 #
 # All available architectures:
-#   Specified by the string `All``. This option will add flags for CUBIN code
+#   Specified by the string ``All``. This option will add flags for CUBIN code
 #   generation for all GPU architectures supported by the compiler.
 #
 # GPU generation name:
@@ -93,7 +93,7 @@
 # Virtual and physical architecture specification:
 #   A string of the form ``XX(YY)``, where ``XX`` is the identifier of the
 #   physical architecture (e.g. ``XX=32`` represent the physical architecture
-#   ``sm_32``) and ``YY is the identifier of the virtual architecture (e.g. 
+#   ``sm_32``) and ``YY`` is the identifier of the virtual architecture (e.g.
 #   ``YY=52`` represents the virtual architecture ``compute_52``).
 #   Flags necessary to generate CUBIN code for the specified combination of the
 #   physical and virtual architecture will be added to the compiler flags.
@@ -102,7 +102,7 @@
 #   A string of the form ``XX``. Functionally exactly equivalent to ``XX(XX)``.
 #
 # Only virtual architecture specification
-#   A string of the form ``(YY)``, where `YY` is the identifier of the virtual
+#   A string of the form ``(YY)``, where ``YY`` is the identifier of the virtual
 #   architecture. Flags necessary to generate the PTX code (which can be used by
 #   the jitter to compile for the specific device at runtime) for the specified
 #   architecture will be added to the compiler flags.
@@ -113,7 +113,7 @@
 # ``UNSUPPORTED`` architectures list
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# This list has entries of the form `XX`, which represent the architecture
+# This list has entries of the form ``XX``, which represent the architecture
 # (both physical and virtual) identifiers. All code generation for both the
 # physical (CUBIN) and virtual (PTX) architectures matching one of the
 # identifiers in this list will be removed from the list specified by the
