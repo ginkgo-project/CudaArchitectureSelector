@@ -76,7 +76,8 @@
 #
 # Automatic detection:
 #   Specified by the string ``Auto``. Flags for CUBIN code generation will be
-#   added for all GPU architectures detected on the system.
+#   added for all GPU architectures detected on the system. When nothing is
+#   detected, the behavior is the same as `All`.
 #
 # All available architectures:
 #   Specified by the string `All``. This option will add flags for CUBIN code
@@ -84,9 +85,10 @@
 #
 # GPU generation name:
 #   Has to be one of the strings ``Tesla``, ``Fermi``, ``Kepler``, ``Maxwell``,
-#   ``Pascal``, ``Volta``, ``Ampere``. Specifying one of the strings will add 
-#   flags for the generation of CUBIN code for all architectures belonging to 
-#   that GPU generation (except the ones listed in the ``UNSUPPORTED`` list).
+#   ``Pascal``, ``Volta``, ``Turing``, ``Ampere``. Specifying one of the strings
+#   will add flags for the generation of CUBIN code for all architectures
+#   belonging to that GPU generation (except the ones listed in the
+#   ``UNSUPPORTED`` list).
 #
 # Virtual and physical architecture specification:
 #   A string of the form ``XX(YY)``, where ``XX`` is the identifier of the
@@ -180,8 +182,14 @@ endfunction()
 
 # returns a list of GPU architectures present on the system
 function(cas_get_onboard_architectures output)
+    # Optional argument: disable warning. This is useful when calling this in a
+    # function which already prints a warning.
+    set(ENABLE_WARNING ON)
+    if (ARGV1 EQUAL 0)
+        set(ENABLE_WARNING OFF)
+    endif()
     if(DEFINED CAS_ONBOARD_ARCHITECTURES)
-        set(${output} ${CAS_ONBOARD_ARCHITECTURES} PARENT_SCOPE)
+        set(${output} "${CAS_ONBOARD_ARCHITECTURES}" PARENT_SCOPE)
         return()
     endif()
     set(detector_name "${PROJECT_BINARY_DIR}/CMakeFiles/cas_detector.cu")
@@ -212,12 +220,12 @@ function(cas_get_onboard_architectures output)
         mark_as_advanced(FORCE CAS_ONBOARD_ARCHITECTURES)
         message(STATUS
             "Detected GPU devices of the following architectures: ${detected}")
-    else()
+    elseif(ENABLE_WARNING)
         message(WARNING
             "GPU detection failed -- something seems to be wrong "
             "with the CUDA installation")
     endif()
-    set(${output} ${CAS_ONBOARD_ARCHITECTURES} PARENT_SCOPE)
+    set(${output} "${CAS_ONBOARD_ARCHITECTURES}" PARENT_SCOPE)
 endfunction()
 
 
@@ -230,14 +238,15 @@ function(cas_get_architectures_by_name name output)
     set( kepler_version 3)
     set(maxwell_version 5)
     set( pascal_version 6)
-    set(  volta_version 7)
+    set(  volta_version "7(0|2)")
+    set( turing_version 75)
     set( ampere_version 8)
     string(TOLOWER ${name} lower_name)
     if(NOT DEFINED ${lower_name}_version)
         message(FATAL_ERROR "${name} is not a valid GPU generation name")
     endif()
     cas_get_supported_architectures(architecture_list)
-    list(FILTER architecture_list INCLUDE REGEX "${${lower_name}_version}[0-9]")
+    list(FILTER architecture_list INCLUDE REGEX "^${${lower_name}_version}[0-9]?")
     set(${output} ${architecture_list} PARENT_SCOPE)
 endfunction()
 
@@ -341,16 +350,18 @@ function(cas_get_compiler_flags output)
                 "cas_get_compiler_flags given unknown argument ${arg}")
         endif()
         if(arg STREQUAL "Auto")
-            cas_get_onboard_architectures(detected)
+            cas_get_onboard_architectures(detected 0)
             if(detected STREQUAL "")
                 message(WARNING
-                    "No GPUs detected on the system -- no additional flags "
-                    "added to the list of architectures")
+                    "No GPUs detected on the system -- adding All flags "
+                    "to the list of architectures")
+                cas_get_supported_architectures(supported)
+                cas_update_flag_list(flags ${stage} ${supported})
             endif()
             cas_update_flag_list(flags ${stage} ${detected})
         elseif(arg STREQUAL "All")
             cas_get_supported_architectures(supported)
-            cas_update_flag_list(flags ${stage} ${detected})
+            cas_update_flag_list(flags ${stage} ${supported})
         elseif(NOT (arg STREQUAL "") AND (arg MATCHES "${cas_spec_regex}"))
             cas_update_flag_list(flags ${stage} ${arg})
         elseif(NOT (arg STREQUAL ""))
