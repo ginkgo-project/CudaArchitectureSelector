@@ -247,7 +247,7 @@ function(cas_get_architectures_by_name name output)
     endif()
     cas_get_supported_architectures(architecture_list)
     list(FILTER architecture_list INCLUDE REGEX "^${${lower_name}_version}[0-9]?")
-    set(${output} ${architecture_list} PARENT_SCOPE)
+    set(${output} "${architecture_list}" PARENT_SCOPE)
 endfunction()
 
 
@@ -274,7 +274,7 @@ endfunction()
 
 
 # Adds or removes entries from a flag list using the ARCHITECTURES or
-# UNUPPORTED lists.
+# UNSUPPORTED lists.
 function(cas_update_flag_list flags_name mode)
     set(flags "${${flags_name}}")
     if(mode STREQUAL "ARCHITECTURES")
@@ -299,7 +299,7 @@ function(cas_update_flag_list flags_name mode)
                 if(arch STREQUAL "")
                     # virtual architecture not specified, use the one corresponding
                     # to the real architecture
-                    set(arch ${code})
+                    set(arch "${code}")
                 endif()
                 if(code STREQUAL "")
                     # real architecture not specified, only generate PTX for the
