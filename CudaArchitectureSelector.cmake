@@ -165,8 +165,24 @@ function(cas_get_supported_architectures output)
     list(SORT extracted_info)
     list(REMOVE_DUPLICATES extracted_info)
     foreach(item IN LISTS extracted_info)
-        string(REGEX REPLACE "sm_([0-9]+)" "\\1" temp ${item})
-        list(APPEND supported ${temp})
+        set(detector_name "${PROJECT_BINARY_DIR}/CMakeFiles/cas_supported.cu")
+        file(WRITE "${detector_name}"
+            "int main() {"
+            "  return 0;"
+            "}")
+        if(CMAKE_CUDA_COMPILER_ID STREQUAL "Clang")
+            set(CMAKE_CUDA_FLAGS "--cuda-gpu-arch=${item}")
+        else()
+            set(CMAKE_CUDA_FLAGS "--gpu-architecture=${item}")
+        endif()
+        try_compile(status "${PROJECT_BINARY_DIR}"
+            SOURCES "${detector_name}")
+        if (status)
+            string(REGEX REPLACE "sm_([0-9]+)" "\\1" temp ${item})
+            list(APPEND supported ${temp})
+        endif()
+        file(REMOVE "${detector_name}")
+        unset(CMAKE_CUDA_FLAGS)
     endforeach()
     if(NOT DEFINED supported)
         message(FATAL_ERROR "Unable to determine supported GPU architectures")
@@ -208,6 +224,7 @@ function(cas_get_onboard_architectures output)
         "      sep = \";\";"
         "    }"
         "  }"
+        "  return 0;"
         "}")
     try_run(status unused
         "${PROJECT_BINARY_DIR}/CMakeFiles" "${detector_name}"
