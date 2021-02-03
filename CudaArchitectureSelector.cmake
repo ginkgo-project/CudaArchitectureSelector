@@ -76,22 +76,24 @@
 #
 # Automatic detection:
 #   Specified by the string ``Auto``. Flags for CUBIN code generation will be
-#   added for all GPU architectures detected on the system.
+#   added for all GPU architectures detected on the system. When nothing is
+#   detected, the behavior is the same as ``All``.
 #
 # All available architectures:
-#   Specified by the string `All``. This option will add flags for CUBIN code
+#   Specified by the string ``All``. This option will add flags for CUBIN code
 #   generation for all GPU architectures supported by the compiler.
 #
 # GPU generation name:
 #   Has to be one of the strings ``Tesla``, ``Fermi``, ``Kepler``, ``Maxwell``,
-#   ``Pascal``, ``Volta``, ``Ampere``. Specifying one of the strings will add 
-#   flags for the generation of CUBIN code for all architectures belonging to 
-#   that GPU generation (except the ones listed in the ``UNSUPPORTED`` list).
+#   ``Pascal``, ``Volta``, ``Turing``, ``Ampere``. Specifying one of the strings
+#   will add flags for the generation of CUBIN code for all architectures
+#   belonging to that GPU generation (except the ones listed in the
+#   ``UNSUPPORTED`` list).
 #
 # Virtual and physical architecture specification:
 #   A string of the form ``XX(YY)``, where ``XX`` is the identifier of the
 #   physical architecture (e.g. ``XX=32`` represent the physical architecture
-#   ``sm_32``) and ``YY is the identifier of the virtual architecture (e.g. 
+#   ``sm_32``) and ``YY`` is the identifier of the virtual architecture (e.g.
 #   ``YY=52`` represents the virtual architecture ``compute_52``).
 #   Flags necessary to generate CUBIN code for the specified combination of the
 #   physical and virtual architecture will be added to the compiler flags.
@@ -100,7 +102,7 @@
 #   A string of the form ``XX``. Functionally exactly equivalent to ``XX(XX)``.
 #
 # Only virtual architecture specification
-#   A string of the form ``(YY)``, where `YY` is the identifier of the virtual
+#   A string of the form ``(YY)``, where ``YY`` is the identifier of the virtual
 #   architecture. Flags necessary to generate the PTX code (which can be used by
 #   the jitter to compile for the specific device at runtime) for the specified
 #   architecture will be added to the compiler flags.
@@ -111,7 +113,7 @@
 # ``UNSUPPORTED`` architectures list
 # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# This list has entries of the form `XX`, which represent the architecture
+# This list has entries of the form ``XX``, which represent the architecture
 # (both physical and virtual) identifiers. All code generation for both the
 # physical (CUBIN) and virtual (PTX) architectures matching one of the
 # identifiers in this list will be removed from the list specified by the
@@ -163,8 +165,24 @@ function(cas_get_supported_architectures output)
     list(SORT extracted_info)
     list(REMOVE_DUPLICATES extracted_info)
     foreach(item IN LISTS extracted_info)
-        string(REGEX REPLACE "sm_([0-9]+)" "\\1" temp ${item})
-        list(APPEND supported ${temp})
+        set(detector_name "${PROJECT_BINARY_DIR}/CMakeFiles/cas_supported.cu")
+        file(WRITE "${detector_name}"
+            "int main() {"
+            "  return 0;"
+            "}")
+        if(CMAKE_CUDA_COMPILER_ID STREQUAL "Clang")
+            set(CMAKE_CUDA_FLAGS "--cuda-gpu-arch=${item}")
+        else()
+            set(CMAKE_CUDA_FLAGS "--gpu-architecture=${item}")
+        endif()
+        try_compile(status "${PROJECT_BINARY_DIR}"
+            SOURCES "${detector_name}")
+        if (status)
+            string(REGEX REPLACE "sm_([0-9]+)" "\\1" temp ${item})
+            list(APPEND supported ${temp})
+        endif()
+        file(REMOVE "${detector_name}")
+        unset(CMAKE_CUDA_FLAGS)
     endforeach()
     if(NOT DEFINED supported)
         message(FATAL_ERROR "Unable to determine supported GPU architectures")
@@ -180,8 +198,14 @@ endfunction()
 
 # returns a list of GPU architectures present on the system
 function(cas_get_onboard_architectures output)
+    # Optional argument: disable warning. This is useful when calling this in a
+    # function which already prints a warning.
+    set(ENABLE_WARNING ON)
+    if (ARGV1 EQUAL 0)
+        set(ENABLE_WARNING OFF)
+    endif()
     if(DEFINED CAS_ONBOARD_ARCHITECTURES)
-        set(${output} ${CAS_ONBOARD_ARCHITECTURES} PARENT_SCOPE)
+        set(${output} "${CAS_ONBOARD_ARCHITECTURES}" PARENT_SCOPE)
         return()
     endif()
     set(detector_name "${PROJECT_BINARY_DIR}/CMakeFiles/cas_detector.cu")
@@ -200,6 +224,7 @@ function(cas_get_onboard_architectures output)
         "      sep = \";\";"
         "    }"
         "  }"
+        "  return 0;"
         "}")
     try_run(status unused
         "${PROJECT_BINARY_DIR}/CMakeFiles" "${detector_name}"
@@ -212,12 +237,12 @@ function(cas_get_onboard_architectures output)
         mark_as_advanced(FORCE CAS_ONBOARD_ARCHITECTURES)
         message(STATUS
             "Detected GPU devices of the following architectures: ${detected}")
-    else()
+    elseif(ENABLE_WARNING)
         message(WARNING
             "GPU detection failed -- something seems to be wrong "
             "with the CUDA installation")
     endif()
-    set(${output} ${CAS_ONBOARD_ARCHITECTURES} PARENT_SCOPE)
+    set(${output} "${CAS_ONBOARD_ARCHITECTURES}" PARENT_SCOPE)
 endfunction()
 
 
@@ -230,15 +255,16 @@ function(cas_get_architectures_by_name name output)
     set( kepler_version 3)
     set(maxwell_version 5)
     set( pascal_version 6)
-    set(  volta_version 7)
+    set(  volta_version "7(0|2)")
+    set( turing_version 75)
     set( ampere_version 8)
     string(TOLOWER ${name} lower_name)
     if(NOT DEFINED ${lower_name}_version)
         message(FATAL_ERROR "${name} is not a valid GPU generation name")
     endif()
     cas_get_supported_architectures(architecture_list)
-    list(FILTER architecture_list INCLUDE REGEX "${${lower_name}_version}[0-9]")
-    set(${output} ${architecture_list} PARENT_SCOPE)
+    list(FILTER architecture_list INCLUDE REGEX "^${${lower_name}_version}[0-9]?")
+    set(${output} "${architecture_list}" PARENT_SCOPE)
 endfunction()
 
 
@@ -265,7 +291,7 @@ endfunction()
 
 
 # Adds or removes entries from a flag list using the ARCHITECTURES or
-# UNUPPORTED lists.
+# UNSUPPORTED lists.
 function(cas_update_flag_list flags_name mode)
     set(flags "${${flags_name}}")
     if(mode STREQUAL "ARCHITECTURES")
@@ -290,7 +316,7 @@ function(cas_update_flag_list flags_name mode)
                 if(arch STREQUAL "")
                     # virtual architecture not specified, use the one corresponding
                     # to the real architecture
-                    set(arch ${code})
+                    set(arch "${code}")
                 endif()
                 if(code STREQUAL "")
                     # real architecture not specified, only generate PTX for the
@@ -341,16 +367,18 @@ function(cas_get_compiler_flags output)
                 "cas_get_compiler_flags given unknown argument ${arg}")
         endif()
         if(arg STREQUAL "Auto")
-            cas_get_onboard_architectures(detected)
+            cas_get_onboard_architectures(detected 0)
             if(detected STREQUAL "")
                 message(WARNING
-                    "No GPUs detected on the system -- no additional flags "
-                    "added to the list of architectures")
+                    "No GPUs detected on the system -- adding All flags "
+                    "to the list of architectures")
+                cas_get_supported_architectures(supported)
+                cas_update_flag_list(flags ${stage} ${supported})
             endif()
             cas_update_flag_list(flags ${stage} ${detected})
         elseif(arg STREQUAL "All")
             cas_get_supported_architectures(supported)
-            cas_update_flag_list(flags ${stage} ${detected})
+            cas_update_flag_list(flags ${stage} ${supported})
         elseif(NOT (arg STREQUAL "") AND (arg MATCHES "${cas_spec_regex}"))
             cas_update_flag_list(flags ${stage} ${arg})
         elseif(NOT (arg STREQUAL ""))

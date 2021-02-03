@@ -31,7 +31,7 @@ cas_get_onboard_architectures(onboard)
 message("Architectures present on the system: ${onboard}")
 
 # get list of architectures of a certain generation supported by the compiler
-foreach(gen IN ITEMS Tesla Fermi Kepler Maxwell Pascal Volta)
+foreach(gen IN ITEMS Tesla Fermi Kepler Maxwell Pascal Volta Turing Ampere)
     cas_get_architectures_by_name(${gen} arch_list)
     message("Supported ${gen} generation architectures: ${arch_list}")
 endforeach()
